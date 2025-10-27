@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Vela Tracker</title>
+  <title>Sailing Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
@@ -13,59 +13,60 @@
       margin: 0;
       padding-top: 2em;
     }
-    .valore {
+    .value {
       font-size: 8em;
       margin: 0.1em;
     }
-    .etichetta {
+    .label {
       font-size: 1.2em;
       margin: 0.2em;
     }
   </style>
 </head>
 <body>
-  <div class="valore" id="velocita">--.-</div>
-  <div class="etichetta">Velocità (nodi)</div>
-  <div class="valore" id="angolo">---</div>
-  <div class="etichetta">Angolo bussola (°)</div>
+  <div class="value" id="speed">--.-</div>
+  <div class="label">Speed (knots)</div>
+  <div class="value" id="heading">---</div>
+  <div class="label">Compass angle (°)</div>
 
   <script>
-    // Richiesta permesso per orientamento (iOS)
-    function richiediPermessoOrientamento() {
+    // Request permission for orientation (iOS)
+    function requestOrientationPermission() {
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
-          .then(risposta => {
-            if (risposta === 'granted') {
-              window.addEventListener('deviceorientation', aggiornaAngolo);
+          .then(response => {
+            if (response === 'granted') {
+              window.addEventListener('deviceorientation', updateHeading);
             } else {
-              alert('Permesso per orientamento negato');
+              alert('Orientation permission denied');
             }
           })
           .catch(console.error);
       } else {
-        // Android o browser compatibile
-        window.addEventListener('deviceorientation', aggiornaAngolo);
+        // Android or compatible browser
+        window.addEventListener('deviceorientation', updateHeading);
       }
     }
 
-    function aggiornaAngolo(e) {
-      const angolo = e.alpha || 0;
-      document.getElementById('angolo').textContent = angolo.toFixed(0);
+    function updateHeading(e) {
+      let heading = e.alpha || 0;
+      heading = (heading + 180) % 360; // Correct for vertical screen orientation
+      document.getElementById('heading').textContent = heading.toFixed(0);
     }
 
-    // GPS → nodi
-    navigator.geolocation.watchPosition(posizione => {
-      const velocita = posizione.coords.speed || 0;
-      const nodi = velocita * 1.94384; // m/s → nodi
-      document.getElementById('velocita').textContent = nodi.toFixed(1);
-    }, errore => {
-      console.error(errore);
-      alert("Errore GPS: " + errore.message);
+    // GPS → knots
+    navigator.geolocation.watchPosition(position => {
+      const speed = position.coords.speed || 0;
+      const knots = speed * 1.94384; // m/s → knots
+      document.getElementById('speed').textContent = knots.toFixed(1);
+    }, error => {
+      console.error(error);
+      alert("GPS error: " + error.message);
     }, { enableHighAccuracy: true });
 
-    // Attiva orientamento dopo interazione
-    document.body.addEventListener('click', richiediPermessoOrientamento);
+    // Activate orientation on tap
+    document.body.addEventListener('click', requestOrientationPermission);
   </script>
 </body>
 </html>
