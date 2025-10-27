@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Sailing Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.cdnfonts.com/css/segment7" rel="stylesheet">
   <style>
     body {
       background: #fff;
@@ -14,6 +15,7 @@
       padding-top: 2em;
     }
     .value {
+      font-family: 'Segment7', monospace;
       font-size: 8em;
       margin: 0.1em;
     }
@@ -30,7 +32,6 @@
   <div class="label">Compass angle (°)</div>
 
   <script>
-    // Filter: update heading max every 500 ms
     let lastHeadingUpdate = 0;
 
     function updateHeading(e) {
@@ -39,11 +40,10 @@
       lastHeadingUpdate = now;
 
       let heading = e.alpha || 0;
-      heading = (heading + 180) % 360; // Correct for vertical screen orientation
+      heading = (heading + 180) % 360;
       document.getElementById('heading').textContent = heading.toFixed(0);
     }
 
-    // Request permission for orientation (iOS)
     function requestOrientationPermission() {
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -57,22 +57,19 @@
           })
           .catch(console.error);
       } else {
-        // Android or compatible browser
         window.addEventListener('deviceorientation', updateHeading);
       }
     }
 
-    // GPS → knots
     navigator.geolocation.watchPosition(position => {
       const speed = position.coords.speed || 0;
-      const knots = speed * 1.94384; // m/s → knots
+      const knots = speed * 1.94384;
       document.getElementById('speed').textContent = knots.toFixed(1);
     }, error => {
       console.error(error);
       alert("GPS error: " + error.message);
     }, { enableHighAccuracy: true });
 
-    // Activate orientation on tap
     document.body.addEventListener('click', requestOrientationPermission);
   </script>
 </body>
