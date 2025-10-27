@@ -30,6 +30,19 @@
   <div class="label">Compass angle (°)</div>
 
   <script>
+    // Filter: update heading max every 500 ms
+    let lastHeadingUpdate = 0;
+
+    function updateHeading(e) {
+      const now = Date.now();
+      if (now - lastHeadingUpdate < 500) return;
+      lastHeadingUpdate = now;
+
+      let heading = e.alpha || 0;
+      heading = (heading + 180) % 360; // Correct for vertical screen orientation
+      document.getElementById('heading').textContent = heading.toFixed(0);
+    }
+
     // Request permission for orientation (iOS)
     function requestOrientationPermission() {
       if (typeof DeviceOrientationEvent !== 'undefined' &&
@@ -47,12 +60,6 @@
         // Android or compatible browser
         window.addEventListener('deviceorientation', updateHeading);
       }
-    }
-
-    function updateHeading(e) {
-      let heading = e.alpha || 0;
-      heading = (heading + 180) % 360; // Correct for vertical screen orientation
-      document.getElementById('heading').textContent = heading.toFixed(0);
     }
 
     // GPS → knots
