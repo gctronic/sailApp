@@ -13,58 +13,59 @@
       margin: 0;
       padding-top: 2em;
     }
-    h1 {
-      font-size: 4em;
-      margin: 0.2em;
+    .valore {
+      font-size: 8em;
+      margin: 0.1em;
     }
-    p {
-      font-size: 1.5em;
-      margin: 0.5em;
+    .etichetta {
+      font-size: 1.2em;
+      margin: 0.2em;
     }
   </style>
 </head>
 <body>
-  <h1 id="speed">--.-</h1>
-  <p>Velocità (km/h)</p>
-  <h1 id="heading">---</h1>
-  <p>Angolo bussola (°)</p>
+  <div class="valore" id="velocita">--.-</div>
+  <div class="etichetta">Velocità (nodi)</div>
+  <div class="valore" id="angolo">---</div>
+  <div class="etichetta">Angolo bussola (°)</div>
 
   <script>
-    // Richiesta sensori di orientamento
-    function requestOrientationPermission() {
+    // Richiesta permesso per orientamento (iOS)
+    function richiediPermessoOrientamento() {
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
-          .then(response => {
-            if (response === 'granted') {
-              window.addEventListener('deviceorientation', updateHeading);
+          .then(risposta => {
+            if (risposta === 'granted') {
+              window.addEventListener('deviceorientation', aggiornaAngolo);
             } else {
-              alert('Permesso orientamento negato');
+              alert('Permesso per orientamento negato');
             }
           })
           .catch(console.error);
       } else {
         // Android o browser compatibile
-        window.addEventListener('deviceorientation', updateHeading);
+        window.addEventListener('deviceorientation', aggiornaAngolo);
       }
     }
 
-    function updateHeading(e) {
-      const heading = e.alpha || 0;
-      document.getElementById('heading').textContent = heading.toFixed(0);
+    function aggiornaAngolo(e) {
+      const angolo = e.alpha || 0;
+      document.getElementById('angolo').textContent = angolo.toFixed(0);
     }
 
-    // GPS
-    navigator.geolocation.watchPosition(pos => {
-      const speed = pos.coords.speed || 0;
-      document.getElementById('speed').textContent = (speed * 3.6).toFixed(1);
-    }, err => {
-      console.error(err);
-      alert("Errore GPS: " + err.message);
+    // GPS → nodi
+    navigator.geolocation.watchPosition(posizione => {
+      const velocita = posizione.coords.speed || 0;
+      const nodi = velocita * 1.94384; // m/s → nodi
+      document.getElementById('velocita').textContent = nodi.toFixed(1);
+    }, errore => {
+      console.error(errore);
+      alert("Errore GPS: " + errore.message);
     }, { enableHighAccuracy: true });
 
     // Attiva orientamento dopo interazione
-    document.body.addEventListener('click', requestOrientationPermission);
+    document.body.addEventListener('click', richiediPermessoOrientamento);
   </script>
 </body>
 </html>
