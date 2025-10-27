@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vela Tracker</title>
+  <style>
+    body { font-family: sans-serif; background: #000; color: #0f0; text-align: center; margin: 0; }
+    h1 { font-size: 5em; margin: 0.2em; }
+    p { font-size: 2em; margin: 0.5em; }
+  </style>
+</head>
+<body>
+  <h1 id="speed">--.-</h1>
+  <p>Velocità (km/h)</p>
+  <h1 id="heading">---</h1>
+  <p>Angolo bussola (°)</p>
+
+  <script>
+    // GPS Speed
+    navigator.geolocation.watchPosition(pos => {
+      const speed = pos.coords.speed || 0;
+      document.getElementById('speed').textContent = (speed * 3.6).toFixed(1); // m/s → km/h
+    }, err => console.error(err), { enableHighAccuracy: true });
+
+    // Magnetometer (Compass)
+    window.addEventListener('deviceorientation', e => {
+      const heading = e.alpha || 0;
+      document.getElementById('heading').textContent = heading.toFixed(0);
+    });
+  </script>
+</body>
+</html>
