@@ -4,25 +4,30 @@
   <meta charset="UTF-8">
   <title>Sailing Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Segment7 and LCD Solid fonts -->
+  <link href="https://fonts.cdnfonts.com/css/segment7" rel="stylesheet">
+  <link href="https://fonts.cdnfonts.com/css/lcd-solid" rel="stylesheet">
   <style>
-    @font-face {
-      font-family: 'HelveticaMonoBold';
-      src: local('Helvetica'), local('Helvetica Neue'), local('Arial');
-      font-weight: bold;
-    }
-
     body {
       background: #fff;
       color: #000;
       font-family: sans-serif;
       text-align: center;
       margin: 0;
-      padding-top: 2em;
+      padding-top: 1em;
+    }
+
+    .controls {
+      margin-bottom: 1em;
+    }
+
+    select {
+      font-size: 1em;
+      padding: 0.3em;
+      margin: 0.3em;
     }
 
     .value {
-      font-family: 'HelveticaMonoBold', monospace;
-      font-weight: bold;
       font-size: 8em;
       margin: 0.1em;
     }
@@ -31,12 +36,42 @@
       font-size: 1.2em;
       margin: 0.2em;
     }
+
+    .Segment7 {
+      font-family: 'Segment7', monospace;
+    }
+
+    .LCD {
+      font-family: 'LCD Solid', monospace;
+    }
+
+    .Helvetica {
+      font-family: 'Helvetica Neue', 'Arial', monospace;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <div class="value" id="speed">--.-</div>
+  <div class="controls">
+    <label for="fontSelect">Font:</label>
+    <select id="fontSelect">
+      <option value="Helvetica">Helvetica Mono Bold</option>
+      <option value="Segment7">Segment7</option>
+      <option value="LCD">LCD Solid</option>
+    </select>
+
+    <label for="sizeSelect">Size:</label>
+    <select id="sizeSelect">
+      <option value="6">Small</option>
+      <option value="8" selected>Medium</option>
+      <option value="10">Large</option>
+      <option value="12">XL</option>
+    </select>
+  </div>
+
+  <div id="speed" class="value Helvetica">--.-</div>
   <div class="label">Speed (knots)</div>
-  <div class="value" id="heading">---</div>
+  <div id="heading" class="value Helvetica">---</div>
   <div class="label">Compass angle (°)</div>
 
   <script>
@@ -47,8 +82,9 @@
       if (now - lastHeadingUpdate < 500) return;
       lastHeadingUpdate = now;
 
-      let heading = e.alpha || 0;
-      heading = (heading + 180) % 360;
+      if (typeof e.alpha !== 'number') return;
+
+      let heading = (360 - e.alpha) % 360;
       document.getElementById('heading').textContent = heading.toFixed(0);
     }
 
@@ -79,6 +115,25 @@
     }, { enableHighAccuracy: true });
 
     document.body.addEventListener('click', requestOrientationPermission);
+
+    // Font and size selector
+    const fontSelect = document.getElementById('fontSelect');
+    const sizeSelect = document.getElementById('sizeSelect');
+    const speedEl = document.getElementById('speed');
+    const headingEl = document.getElementById('heading');
+
+    function updateStyle() {
+      const font = fontSelect.value;
+      const size = sizeSelect.value;
+
+      speedEl.className = `value ${font}`;
+      headingEl.className = `value ${font}`;
+      speedEl.style.fontSize = `${size}em`;
+      headingEl.style.fontSize = `${size}em`;
+    }
+
+    fontSelect.addEventListener('change', updateStyle);
+    sizeSelect.addEventListener('change', updateStyle);
   </script>
 </body>
 </html>
