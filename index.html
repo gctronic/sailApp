@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no"/>
+  <title>Regatta Tracker</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      color: #000;
+      font-family: Helvetica, sans-serif;
+    }
+    .screen { display: none; padding: 1em; }
+    .active { display: block; }
+    .row { display: flex; justify-content: space-around; margin: 0.5em 0; }
+    .label { font-size: 1em; color: #666; text-align: center; }
+    .value { font-size: 18vw; font-weight: bold; text-align: center; }
+    select, input, button {
+      margin: 0.5em 0;
+      width: 100%;
+      font-size: 1em;
+    }
+    .logo {
+      text-align: center;
+      margin-top: 2em;
+      font-size: 0.9em;
+      color: #888;
+    }
+    .logo img {
+      max-width: 100px;
+      display: block;
+      margin: 0.5em auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="row">
+    <button type="button" onclick="showScreen('main')">🧭</button>
+    <button type="button" onclick="showScreen('settings')">⚙️</button>
+    <button type="button" onclick="showScreen('start')">🏁</button>
+  </div>
+
+  <!-- 🧭 MAIN SCREEN -->
+  <div id="main" class="screen active">
+    <div class="label">Heading</div>
+    <div id="heading" class="value">--</div>
+    <div class="label">Speed (kn)</div>
+    <div id="speed" class="value">--</div>
+    <div id="vmgBlock" style="display:none;">
+      <div class="label">VMG (kn)</div>
+      <div id="vmg" class="value">--</div>
+    </div>
+    <div class="logo">
+      <a href="https://www.watersportmarks.com" target="_blank">
+        <img src="https://www.watersportmarks.com/wp-content/uploads/2022/01/WSM_logoBW-1024x529.png" alt="WaterSportMarks Logo" />
+        <div>Powered by WaterSportMarks</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- ⚙️ SETTINGS SCREEN -->
+  <div id="settings" class="screen">
+    <h3>Display Settings</h3>
+    <label>Font</label>
+    <select id="fontSelect" onchange="applyFont()">
+      <option value="Helvetica">Helvetica</option>
+      <option value="Segment7Standard">Segment7</option>
+      <option value="LCDSolid">LCD Solid</option>
+      <option value="monospace">Monospace</option>
+    </select>
+    <label>Font Size</label>
+    <select id="sizeSelect" onchange="applyFont()">
+      <option value="10vw">Small</option>
+      <option value="14vw">Medium</option>
+      <option value="18vw" selected>Large</option>
+    </select>
+    <label>Show VMG</label>
+    <select id="vmgToggle" onchange="toggleVMG()">
+      <option value="false">No</option>
+      <option value="true" selected>Yes</option>
+    </select>
+    <div class="logo">
+      <a href="https://www.watersportmarks.com" target="_blank">
+        <img src="https://www.watersportmarks.com/wp-content/uploads/2022/01/WSM_logoBW-1024x529.png" alt="WaterSportMarks Logo" />
+        <div>Powered by WaterSportMarks</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 🏁 START SCREEN -->
+  <div id="start" class="screen">
+    <h3>Start Setup</h3>
+    <label>Committee Boat</label>
+    <input id="com-lat" placeholder="Latitude" />
+    <input id="com-lon" placeholder="Longitude" />
+    <button type="button" onclick="useCurrent('com')">Use Current Position</button>
+
+    <label>Pin End</label>
+    <input id="pin-lat" placeholder="Latitude" />
+    <input id="pin-lon" placeholder="Longitude" />
+    <button type="button" onclick="useCurrent('pin')">Use Current Position</button>
+
+    <label>Windward Mark</label>
+    <input id="boa-lat" placeholder="Latitude" />
+    <input id="boa-lon" placeholder="Longitude" />
+    <button type="button" onclick="useCurrent('boa')">Use Current Position</button>
+
+    <div id="lineInfo">
+      <p>Start Line Length: <span id="lineLength">--</span> m</p>
+      <p>Line Direction: <span id="lineBearing">--</span>°</p>
+      <p>Mark Distance: <span id="markDist">--</span> m</p>
+      <p>Mark Angle: <span id="markAngle">--</span>°</p>
+    </div>
+
+    <label>Start Timer</label>
+    <select id="timerSelect">
+      <option value="180">3 minutes</option>
+      <option value="300" selected>5 minutes</option>
+    </select>
+    <button type="button" onclick="startTimer()">Start</button>
+    <div id="timerDisplay">--:--</div>
+    <div class="logo">
+      <a href="https://www.watersportmarks.com" target="_blank">
+        <img src="https://www.watersportmarks.com/wp-content/uploads/2022/01/WSM_logoBW-1024x529.png" alt="WaterSportMarks Logo" />
+        <div>Powered by WaterSportMarks</div>
+      </a>
+    </div>
+  </div>
+
+<div class="label">Heading</div>
+<div id="heading" class="value" onclick="enableHeading()">--</div>
+
+  <script>
+    let regatta = {};
+    let timerInterval;
+    let showVMG = true;
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'start') updateLineInfo();
+    }
+
+    function useCurrent(target) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        document.getElementById(`${target}-lat`).value = pos.coords.latitude.toFixed(6);
+        document.getElementById(`${target}-lon`).value = pos.coords.longitude.toFixed(6);
+        updateLineInfo();
+      });
+    }
+
+    function applyFont() {
+      const font = document.getElementById('fontSelect').value;
+      const size = document.getElementById('sizeSelect').value;
+      document.querySelectorAll('.value').forEach(el => {
+        el.style.fontFamily = font;
+        el.style.fontSize = size;
+      });
+    }
+
+function enableHeading() {
+  if (typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function") {
+    // iOS
+    DeviceOrientationEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === "granted") {
+          window.addEventListener("deviceorientation", handleHeading, true);
+        } else {
+          alert("Permission denied for compass access.");
+        }
+      })
+      .catch(console.error);
+  } else {
+    // Android or already allowed
+    window.addEventListener("deviceorientationabsolute", handleHeading, true);
+    window.addEventListener("deviceorientation", handleHeading, true);
+  }
+}
+
+function handleHeading(e) {
+  const heading = e.alpha ?? 0;
+  document.getElementById("heading").textContent = heading.toFixed(0);
+}	
+
+    function toggleVMG() {
+      showVMG = document.getElementById('vmgToggle').value === "true";
+      document.getElementById('vmgBlock').style.display = showVMG ? "block" : "none";
+    }
+
+    function toRad(deg) { return deg * Math.PI / 180; }
+    function toDeg(rad) { return rad * 180 / Math.PI; }
+
+    function calcBearing(lat1, lon1, lat2, lon2) {
+      const dLon = toRad(lon2 - lon1);
+      const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+      const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+                Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+      return (toDeg(Math.atan2(y, x)) + 360) % 360;
+    }
+
+    function calcDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371000;	  
+      const φ1 = toRad(lat1), φ2 = toRad(lat2);
+      const Δφ = toRad(lat2 - lat1), Δλ = toRad(lon2 - lon1);
+      const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function updateLineInfo() {
+      const clat = parseFloat(document.getElementById('com-lat').value);
+      const clon = parseFloat(document.getElementById('com-lon').value);
+      const plat = parseFloat(document.getElementById('pin-lat').value);
+      const plon = parseFloat(document.getElementById('pin-lon').value);
+      const blat = parseFloat(document.getElementById('boa-lat').value);
+      const blon = parseFloat(document.getElementById('boa-lon').value);
+
+      if (isFinite(clat) && isFinite(clon) && isFinite(plat) && isFinite(plon)) {
+        const length = calcDistance(clat, clon, plat, plon);
+        const bearing = calcBearing(clat, clon, plat, plon);
+        document.getElementById('lineLength').textContent = length.toFixed(1);
+        document.getElementById('lineBearing').textContent = bearing.toFixed(0);
+
+        if (isFinite(blat) && isFinite(blon)) {
+          const midLat = (clat + plat) / 2;
+          const midLon = (clon + plon) / 2;
+          const dist = calcDistance(midLat, midLon, blat, blon);
+          const angle = calcBearing(midLat, midLon, blat, blon);
+          document.getElementById('markDist').textContent = dist.toFixed(1);
+          document.getElementById('markAngle').textContent = angle.toFixed(0);
+        }
+      }
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      let seconds = parseInt(document.getElementById('timerSelect').value);
+      timerInterval = setInterval(() => {
+        const min = Math.floor(seconds / 60);
+        const sec = seconds % 60;
+        document.getElementById('timerDisplay').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+        if (seconds-- <= 0) clearInterval(timerInterval);
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
+	  
