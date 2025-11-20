@@ -45,7 +45,7 @@
   <!-- 🧭 MAIN SCREEN -->
   <div id="main" class="screen active">
     <div class="label">Heading</div>
-    <div id="heading" class="value">--</div>
+	<div id="heading" class="value" onclick="requestOrientationPermission()">--</div>
     <div class="label">Speed (kn)</div>
     <div id="speed" class="value">--</div>
     <div id="vmgBlock" style="display:none;">
@@ -55,7 +55,6 @@
     <div class="logo">
       <a href="https://www.watersportmarks.com" target="_blank">
         <img src="https://www.watersportmarks.com/wp-content/uploads/2022/01/WSM_logoBW-1024x529.png" alt="WaterSportMarks Logo" />
-        <div>Powered by WaterSportMarks</div>
       </a>
     </div>
   </div>
@@ -78,8 +77,8 @@
     </select>
     <label>Show VMG</label>
     <select id="vmgToggle" onchange="toggleVMG()">
-      <option value="false">No</option>
-      <option value="true" selected>Yes</option>
+      <option value="false" selected>No</option>
+      <option value="true" >Yes</option>
     </select>
     <div class="logo">
       <a href="https://www.watersportmarks.com" target="_blank">
@@ -92,26 +91,26 @@
   <!-- 🏁 START SCREEN -->
   <div id="start" class="screen">
     <h3>Start Setup</h3>
-    <label>Committee Boat</label>
-    <input id="com-lat" placeholder="Latitude" />
-    <input id="com-lon" placeholder="Longitude" />
+    <label>Committee boat</label>
+    <input id="com-lat" placeholder="Latitude" oninput="updateLineInfo()"/>
+    <input id="com-lon" placeholder="Longitude" oninput="updateLineInfo()"/>
     <button type="button" onclick="useCurrent('com')">Use Current Position</button>
 
-    <label>Pin End</label>
-    <input id="pin-lat" placeholder="Latitude" />
-    <input id="pin-lon" placeholder="Longitude" />
+    <label>Pin end</label>
+    <input id="pin-lat" placeholder="Latitude" oninput="updateLineInfo()"/>
+    <input id="pin-lon" placeholder="Longitude" oninput="updateLineInfo()"/>
     <button type="button" onclick="useCurrent('pin')">Use Current Position</button>
 
-    <label>Windward Mark</label>
-    <input id="boa-lat" placeholder="Latitude" />
-    <input id="boa-lon" placeholder="Longitude" />
+    <label>Windward mark</label>
+    <input id="boa-lat" placeholder="Latitude" oninput="updateLineInfo()"/>
+    <input id="boa-lon" placeholder="Longitude" oninput="updateLineInfo()"/>
     <button type="button" onclick="useCurrent('boa')">Use Current Position</button>
 
     <div id="lineInfo">
-      <p>Start Line Length: <span id="lineLength">--</span> m</p>
-      <p>Line Direction: <span id="lineBearing">--</span>°</p>
-      <p>Mark Distance: <span id="markDist">--</span> m</p>
-      <p>Mark Angle: <span id="markAngle">--</span>°</p>
+      <p>Start line length: <span id="lineLength">--</span> m</p>
+      <p>Line direction: <span id="lineBearing">--</span>°</p>
+      <p>Mark distance: <span id="markDist">--</span> m</p>
+      <p>Windward mark direction: <span id="markAngle">--</span>°</p>
     </div>
 
     <label>Start Timer</label>
@@ -124,18 +123,75 @@
     <div class="logo">
       <a href="https://www.watersportmarks.com" target="_blank">
         <img src="https://www.watersportmarks.com/wp-content/uploads/2022/01/WSM_logoBW-1024x529.png" alt="WaterSportMarks Logo" />
-        <div>Powered by WaterSportMarks</div>
       </a>
     </div>
   </div>
 
-<div class="label">Heading</div>
-<div id="heading" class="value" onclick="enableHeading()">--</div>
-
   <script>
+    let lastHeadingUpdate = 0;
     let regatta = {};
     let timerInterval;
     let showVMG = true;
+
+    function updateHeading(e) {
+      const now = Date.now();
+      if (now - lastHeadingUpdate < 500) return;
+      lastHeadingUpdate = now;
+
+      let heading;
+
+      if (typeof e.webkitCompassHeading === 'number') {
+        heading = e.webkitCompassHeading;
+      } else if (e.absolute === true && typeof e.alpha === 'number') {
+        heading = (360 - e.alpha) % 360;
+      } else if (typeof e.alpha === 'number') {
+        heading = (360 - e.alpha) % 360;
+      } else {
+        return;
+      }
+
+      document.getElementById('heading').textContent = heading.toFixed(0);
+    }
+
+    function requestOrientationPermission() {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              window.addEventListener('deviceorientation', updateHeading);
+            } else {
+              alert('Orientation permission denied');
+            }
+          })
+          .catch(console.error);
+      } else {
+        window.addEventListener('deviceorientation', updateHeading);
+      }
+    }
+
+    navigator.geolocation.watchPosition(position => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const speed = position.coords.speed || 0;
+      const knots = speed * 1.94384;
+      document.getElementById('speed').textContent = knots.toFixed(1);
+      // Use last known heading from orientation
+      const headingText = document.getElementById('heading').textContent;
+      const heading = parseFloat(headingText) || 0;
+      // Update VMG only if enabled and mark is set
+	  if (showVMG && regatta.mark?.lat && regatta.mark?.lon) {
+        const bearing = calcBearing(lat, lon, regatta.mark.lat, regatta.mark.lon);
+        const heading = parseFloat(document.getElementById('heading').textContent);
+        const vmg = calculateVMG(speedKn, heading, bearing);
+        document.getElementById('vmg').textContent = vmg.toFixed(1);
+}
+
+    }, error => {
+      console.error(error);
+      alert("GPS error: " + error.message);
+    }, { enableHighAccuracy: true });
+
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -160,31 +216,6 @@
       });
     }
 
-function enableHeading() {
-  if (typeof DeviceOrientationEvent !== "undefined" &&
-      typeof DeviceOrientationEvent.requestPermission === "function") {
-    // iOS
-    DeviceOrientationEvent.requestPermission()
-      .then(permissionState => {
-        if (permissionState === "granted") {
-          window.addEventListener("deviceorientation", handleHeading, true);
-        } else {
-          alert("Permission denied for compass access.");
-        }
-      })
-      .catch(console.error);
-  } else {
-    // Android or already allowed
-    window.addEventListener("deviceorientationabsolute", handleHeading, true);
-    window.addEventListener("deviceorientation", handleHeading, true);
-  }
-}
-
-function handleHeading(e) {
-  const heading = e.alpha ?? 0;
-  document.getElementById("heading").textContent = heading.toFixed(0);
-}	
-
     function toggleVMG() {
       showVMG = document.getElementById('vmgToggle').value === "true";
       document.getElementById('vmgBlock').style.display = showVMG ? "block" : "none";
@@ -200,7 +231,14 @@ function handleHeading(e) {
                 Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
       return (toDeg(Math.atan2(y, x)) + 360) % 360;
     }
+	
 
+function calculateVMG(speed, heading, targetBearing) {
+  const angleDiff = Math.abs(heading - targetBearing) % 360;
+  const angle = angleDiff > 180 ? 360 - angleDiff : angleDiff;
+  const angleRad = toRad(angle);
+  return speed * Math.cos(angleRad);
+}
     function calcDistance(lat1, lon1, lat2, lon2) {
       const R = 6371000;	  
       const φ1 = toRad(lat1), φ2 = toRad(lat2);
@@ -234,7 +272,9 @@ function handleHeading(e) {
       }
     }
 
-    function startTimer() {
+    setInterval(updateLineInfo, 1000);
+
+    function startTimerOld() {
       clearInterval(timerInterval);
       let seconds = parseInt(document.getElementById('timerSelect').value);
       timerInterval = setInterval(() => {
@@ -244,6 +284,71 @@ function handleHeading(e) {
         if (seconds-- <= 0) clearInterval(timerInterval);
       }, 1000);
     }
+	
+	function startTimer() {
+  clearInterval(timerInterval);
+  let seconds = parseInt(document.getElementById('timerSelect').value);
+  const display = document.getElementById('timerDisplay');
+
+  timerInterval = setInterval(() => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    display.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+
+    // 🔔 Beep at 1 minute and 0
+    if (seconds === 60 || seconds === 0) {
+      beep();
+    }
+
+    // ⏱️ Announce every 20s or every second in last 10s
+    if ((seconds > 10 && seconds % 20 === 0) || seconds <= 10) {
+      speakTime(seconds);
+      console.log(`⏱️ ${min}:${sec.toString().padStart(2, '0')} remaining`);
+    }
+
+    if (seconds-- <= 0) clearInterval(timerInterval);
+  }, 1000);
+}
+
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1000, ctx.currentTime);
+    osc.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.2);
+  } catch (e) {
+    console.warn("Beep failed:", e);
+  }
+}
+
+function speakTime(seconds) {
+  const synth = window.speechSynthesis;
+  if (!synth) return;
+
+  // 🛠️ Cancel any pending speech to avoid repetition
+  if (synth.speaking || synth.pending) {
+    synth.cancel();
+  }
+
+  let text = "";
+  if (seconds === 0) text = "Start!";
+  else if (seconds <= 10) text = seconds.toString();
+  else if (seconds === 60) text = "One minute";
+  else if (seconds % 60 === 0) text = `${seconds / 60} minutes`;
+  else {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    text = `${min} ${sec < 10 ? "oh " + sec : sec}`;
+  }
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 1.1;
+  synth.speak(utter);
+}
+
   </script>
 </body>
 </html>
