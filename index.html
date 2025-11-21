@@ -16,9 +16,7 @@
     .screen { display: none; padding: 1em; }
     .active { display: block; }
     .row { display: flex; justify-content: space-around; margin: 0.5em 0; }
-    .label { font-size: 1em; color: #666; text-align: center; }
-    .value { font-size: 18vw; font-weight: bold; text-align: center; }
-    #app {
+     #app {
       height: 100vh;
       width: 100vw;
       display: flex;
@@ -26,14 +24,17 @@
     }
     select, input, button {
       margin: 0;
-	  font-size: 0.5em;   /* smaller text */
+	  font-size: 0.7em;   /* smaller text */
       padding: 2px 4px;   /* tighter padding */
       width: 100%;
     }
-    .main {
-      flex: 1;          /* fills remaining space */
-      overflow: auto;
-    }
+.main {
+  flex: 1;             /* fills remaining space */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* center vertically */
+  align-items: center;     /* center horizontally */
+}
     .logo {
       text-align: center;
       margin-top: 0;
@@ -52,16 +53,16 @@
 	.label {
       font-size: 0.7em;   /* smaller text for descriptions */
       font-weight: normal;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       line-height: 1.0;
+	  color: #666; text-align: center;
     }
     .value {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0; text-align: center;
       line-height: 1.0;
-//  font-size: 1.5em;   /* keep numbers larger and clear */
-//  font-weight: bold;
+	  font-size: 22vh;   /* scale with viewport height */
+//    font-size: 1.5em;   /* keep numbers larger and clear */
+      font-weight: bold;
     }
   </style>
 </head>
@@ -101,10 +102,10 @@
     </select>
     <label>Font Size</label>
     <select id="sizeSelect" onchange="applyFont()">
-      <option value="12vw">Small</option>
-      <option value="16vw">Medium</option>
-      <option value="20vw" selected>Large</option>
-	  <option value="26vw">XL</option>
+      <option value="20vh">Small</option>
+      <option value="28vh">Medium</option>
+      <option value="36vh" selected>Large</option>
+	  <option value="46vh">XL</option>
     </select>
     <label>Show VMG</label>
     <select id="vmgToggle" onchange="toggleVMG()">
@@ -332,7 +333,7 @@ function calculateVMG(speed, heading, targetBearing) {
       beep(0.2);
     }
     if (seconds === 60) {
-      beep(0.4);
+      beep(0.8);
     }
     if (seconds === 0) {
       beep(0.2);
