@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Font Selector Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wdth,wght@85,700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h1 {
+      font-size: 1.5em;
+    }
+    #digits {
+      font-size: 48px;
+      margin-top: 20px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+    .roboto-condensed-bold {
+      font-family: 'Roboto Condensed', sans-serif;
+      font-weight: 700;
+    }
+    .atkinson-hyperlegible {
+      font-family: 'Atkinson Hyperlegible', sans-serif;
+    }
+    .source-sans-semicondensed {
+      font-family: 'Source Sans 3', sans-serif;
+      font-weight: 700;
+      font-stretch: 85%;
+    }
+    .helvetica-bold {
+      font-family: 'Helvetica', sans-serif;
+      font-weight: bold;
+    }
+    .arial-bold {
+      font-family: 'Arial', sans-serif;
+      font-weight: bold;
+    }
+    .sans-serif-bold {
+      font-family: sans-serif;
+      font-weight: bold;
+    }
+    #fontUpload {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Font Selector for Sailing Tracker</h1>
+  <label for="fontSelect">Choose a font:</label>
+  <select id="fontSelect">
+    <option value="roboto-condensed-bold">Roboto Condensed Bold</option>
+    <option value="atkinson-hyperlegible">Atkinson Hyperlegible</option>
+    <option value="source-sans-semicondensed">Source Sans 3 SemiCondensed</option>
+    <option value="helvetica-bold">Helvetica Bold</option>
+    <option value="arial-bold">Arial Bold</option>
+    <option value="sans-serif-bold">Generic Sans-Serif Bold</option>
+    <option value="custom">Upload Custom Font</option>
+  </select>
+
+  <input type="file" id="fontUpload" accept=".ttf,.otf,.woff,.woff2" style="display:none">
+
+  <div id="digits" class="roboto-condensed-bold">0123456789</div>
+
+  <script>
+    const fontSelect = document.getElementById('fontSelect');
+    const digits = document.getElementById('digits');
+    const fontUpload = document.getElementById('fontUpload');
+
+    fontSelect.addEventListener('change', () => {
+      digits.className = ''; // reset classes
+      const selected = fontSelect.value;
+
+      if (selected === 'custom') {
+        fontUpload.style.display = 'inline';
+      } else {
+        fontUpload.style.display = 'none';
+        digits.classList.add(selected);
+      }
+    });
+
+    fontUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const font = new FontFace('CustomFont', evt.target.result);
+          font.load().then(function(loadedFont) {
+            document.fonts.add(loadedFont);
+            digits.style.fontFamily = 'CustomFont';
+          });
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    });
+  </script>
+</body>
+</html>
