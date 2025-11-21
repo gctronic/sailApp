@@ -8,6 +8,7 @@
     body {
       margin: 0;
       padding: 0;
+	  height: 100%;
       background: #fff;
       color: #000;
       font-family: Helvetica, sans-serif;
@@ -17,21 +18,50 @@
     .row { display: flex; justify-content: space-around; margin: 0.5em 0; }
     .label { font-size: 1em; color: #666; text-align: center; }
     .value { font-size: 18vw; font-weight: bold; text-align: center; }
+    #app {
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+    }
     select, input, button {
-      margin: 0.5em 0;
+      margin: 0;
+	  font-size: 0.5em;   /* smaller text */
+      padding: 2px 4px;   /* tighter padding */
       width: 100%;
-      font-size: 1em;
+    }
+    .main {
+      flex: 1;          /* fills remaining space */
+      overflow: auto;
     }
     .logo {
       text-align: center;
-      margin-top: 2em;
+      margin-top: 0;
+	  margin: 0;
       font-size: 0.9em;
       color: #888;
+    }
+	.logo-link {
+      display: inline-block; /* restricts clickable area to the image only */
     }
     .logo img {
       max-width: 100px;
       display: block;
       margin: 0.5em auto;
+    }
+	.label {
+      font-size: 0.7em;   /* smaller text for descriptions */
+      font-weight: normal;
+      margin: 0;
+      padding: 0;
+      line-height: 1.0;
+    }
+    .value {
+      margin: 0;
+      padding: 0;
+      line-height: 1.0;
+//  font-size: 1.5em;   /* keep numbers larger and clear */
+//  font-weight: bold;
     }
   </style>
 </head>
@@ -53,7 +83,7 @@
       <div id="vmg" class="value">--</div>
     </div>
     <div class="logo">
-      <a href="https://www.watersportmarks.com" target="_blank">
+      <a href="https://www.watersportmarks.com" target="_blank" class="logo-link">
         <img src="https://www.watersportmarks.com/wp-content/uploads/2022/01/WSM_logoBW-1024x529.png" alt="WaterSportMarks Logo" />
       </a>
     </div>
@@ -64,22 +94,24 @@
     <h3>Display Settings</h3>
     <label>Font</label>
     <select id="fontSelect" onchange="applyFont()">
-      <option value="Helvetica">Helvetica</option>
+      <option value="Helvetica">Helvetica Mono Bold</option>
       <option value="Segment7Standard">Segment7</option>
       <option value="LCDSolid">LCD Solid</option>
       <option value="monospace">Monospace</option>
     </select>
     <label>Font Size</label>
     <select id="sizeSelect" onchange="applyFont()">
-      <option value="10vw">Small</option>
-      <option value="14vw">Medium</option>
-      <option value="18vw" selected>Large</option>
+      <option value="12vw">Small</option>
+      <option value="16vw">Medium</option>
+      <option value="20vw" selected>Large</option>
+	  <option value="26vw">XL</option>
     </select>
     <label>Show VMG</label>
     <select id="vmgToggle" onchange="toggleVMG()">
       <option value="false" selected>No</option>
       <option value="true" >Yes</option>
     </select>
+	<button id="enableAudio">Enable Audio</button>
     <div class="logo">
       <a href="https://www.watersportmarks.com" target="_blank">
         <img src="https://www.watersportmarks.com/wp-content/uploads/2022/01/WSM_logoBW-1024x529.png" alt="WaterSportMarks Logo" />
@@ -295,9 +327,15 @@ function calculateVMG(speed, heading, targetBearing) {
     const sec = seconds % 60;
     display.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
 
-    // 🔔 Beep at 1 minute and 0
-    if (seconds === 60 || seconds === 0) {
-      beep();
+    // 🔔 Beep at 4, 1 minute and 0
+    if (seconds === 240) {
+      beep(0.2);
+    }
+    if (seconds === 60) {
+      beep(0.4);
+    }
+    if (seconds === 0) {
+      beep(0.2);
     }
 
     // ⏱️ Announce every 20s or every second in last 10s
@@ -310,7 +348,30 @@ function calculateVMG(speed, heading, targetBearing) {
   }, 1000);
 }
 
-function beep() {
+let voices = [];
+
+function initVoices() {
+  voices = speechSynthesis.getVoices();
+  if (!voices.length) {
+    speechSynthesis.onvoiceschanged = () => {
+      voices = speechSynthesis.getVoices();
+    };
+  }
+}
+
+function enableAudio() {
+  // Force audio permission by speaking once after user tap
+  initVoices();
+  const utter = new SpeechSynthesisUtterance("Audio enabled");
+  utter.voice = voices.find(v => v.lang.startsWith("en")) || null;
+  speechSynthesis.speak(utter);
+
+  // You can now safely use speech in timer announcements
+  alert("Audio permission granted");
+}
+
+document.getElementById("enableAudio").addEventListener("click", enableAudio);
+function beep(duration = 0.2) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -318,7 +379,7 @@ function beep() {
     osc.frequency.setValueAtTime(1000, ctx.currentTime);
     osc.connect(ctx.destination);
     osc.start();
-    osc.stop(ctx.currentTime + 0.2);
+    osc.stop(ctx.currentTime + duration);
   } catch (e) {
     console.warn("Beep failed:", e);
   }
@@ -326,8 +387,10 @@ function beep() {
 
 function speakTime(seconds) {
   const synth = window.speechSynthesis;
-  if (!synth) return;
-
+  if (!synth) {
+    beep()
+    return;
+  }
   // 🛠️ Cancel any pending speech to avoid repetition
   if (synth.speaking || synth.pending) {
     synth.cancel();
